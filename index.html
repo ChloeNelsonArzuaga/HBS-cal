@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HBS Fall 2026 Schedule Planner</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">HBS</div>
+      <div>
+        <h1>EC Schedule Planner</h1>
+        <div class="sub">MBA Elective Curriculum — Fall 2026 (Q1Q2)</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Enrolled</div>
+        <div class="stat-value" id="enrolledCount">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Credits</div>
+        <div class="stat-value" id="creditCount">0</div>
+      </div>
+      <button class="btn danger" id="clearBtn">Clear All</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Left: Course catalog -->
+    <aside class="panel catalog">
+      <div class="catalog-header">
+        <input type="search" id="searchBox" placeholder="Search courses, instructors, codes…">
+        <div class="filter-row">
+          <select id="filterTerm">
+            <option value="">All terms</option>
+            <option value="Q1Q2">Full term (Q1Q2)</option>
+            <option value="Q1">Q1 only</option>
+            <option value="Q2">Q2 only</option>
+          </select>
+          <select id="filterSchedule">
+            <option value="">All schedules</option>
+            <option value="X">X schedule</option>
+            <option value="Y">Y schedule</option>
+            <option value="Weekly">Weekly (Tue/Wed/Thu)</option>
+            <option value="Joint">Joint-degree</option>
+          </select>
+          <select id="filterCategory">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <div class="filter-row">
+          <label class="chk"><input type="checkbox" id="filterEnrolled"> Enrolled only</label>
+          <label class="chk"><input type="checkbox" id="filterConflicts"> Hide conflicts</label>
+        </div>
+      </div>
+      <div id="courseList" class="course-list"></div>
+    </aside>
+
+    <!-- Right: Calendar -->
+    <section class="panel calendar">
+      <div class="cal-header">
+        <div class="nav-group">
+          <button class="btn" id="prevWeek">‹</button>
+          <button class="btn" id="todayBtn">This week</button>
+          <button class="btn" id="nextWeek">›</button>
+        </div>
+        <div class="cal-title" id="weekLabel"></div>
+        <div class="view-toggle">
+          <button class="btn toggle active" data-view="week">Week</button>
+          <button class="btn toggle" data-view="term">Full term</button>
+        </div>
+      </div>
+      <div id="calendar" class="calendar-body"></div>
+      <div class="cal-footer">
+        <div class="legend">
+          <span class="legend-dot x"></span> X day
+          <span class="legend-dot y"></span> Y day
+          <span class="legend-dot weekly"></span> Weekly
+          <span class="legend-dot holiday"></span> Holiday / Exams
+        </div>
+        <button class="btn" id="exportIcsBtn">Export .ics</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
