@@ -19,6 +19,7 @@
       <span class="schedule-label">Schedule</span>
       <select id="scheduleSelect" class="schedule-select"></select>
       <button class="btn" id="newScheduleBtn">+ New</button>
+      <button class="btn" id="duplicateScheduleBtn">Duplicate</button>
       <button class="btn" id="renameScheduleBtn">Rename</button>
       <button class="btn danger" id="deleteScheduleBtn">Delete</button>
     </div>
@@ -101,6 +102,11 @@
     <button class="detail-close" id="detailClose">✕</button>
     <div id="detailBody" class="detail-body"></div>
   </div>
+
+  <nav class="mobile-tabs" id="mobileTabs">
+    <button class="mobile-tab active" data-tab="catalog">Courses</button>
+    <button class="mobile-tab" data-tab="calendar">Calendar</button>
+  </nav>
 
   <div id="toast" class="toast"></div>
 

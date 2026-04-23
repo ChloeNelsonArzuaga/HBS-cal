@@ -70,6 +70,39 @@ function renameSchedule(newName) {
   toast(`Renamed to "${newName}"`);
 }
 
+function duplicateSchedule() {
+  const src = getActive();
+  const name = prompt("Name for duplicate:", `${src.name} (copy)`);
+  if (!name || !name.trim()) return;
+  persist();
+
+  // Give each custom course a new ID and build a remapping table
+  const idMap = new Map();
+  const newCustomCourses = src.customCourses.map(c => {
+    const newId = `custom-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    idMap.set(c.id, newId);
+    return { ...c, id: newId };
+  });
+
+  // Remap enrolled: catalog IDs stay the same, custom IDs get their new counterpart
+  const newEnrolled = src.enrolled.map(id => idMap.get(id) || id);
+
+  const s = {
+    id: `sched-${Date.now()}`,
+    name: name.trim(),
+    enrolled: newEnrolled,
+    customCourses: newCustomCourses,
+  };
+  schedules.push(s);
+  activeId      = s.id;
+  enrolled      = new Set(s.enrolled);
+  customCourses = [...s.customCourses];
+  persist();
+  renderScheduleSelector();
+  updateAll();
+  toast(`Duplicated as "${s.name}"`);
+}
+
 function deleteSchedule() {
   if (schedules.length <= 1) { toast("Can't delete the only schedule"); return; }
   const name = getActive().name;
@@ -840,6 +873,8 @@ document.getElementById("newScheduleBtn").addEventListener("click", () => {
   if (name && name.trim()) createSchedule(name.trim());
 });
 
+document.getElementById("duplicateScheduleBtn").addEventListener("click", duplicateSchedule);
+
 document.getElementById("renameScheduleBtn").addEventListener("click", () => {
   const name = prompt("Rename schedule:", getActive().name);
   if (name && name.trim()) renameSchedule(name.trim());
@@ -848,6 +883,16 @@ document.getElementById("renameScheduleBtn").addEventListener("click", () => {
 document.getElementById("deleteScheduleBtn").addEventListener("click", () => {
   if (!confirm(`Delete "${getActive().name}"? This cannot be undone.`)) return;
   deleteSchedule();
+});
+
+// ---------- Mobile tab switching ----------
+function setMobileTab(tab) {
+  document.querySelectorAll(".mobile-tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.tab === tab));
+  document.body.classList.toggle("mobile-cal", tab === "calendar");
+}
+document.querySelectorAll(".mobile-tab").forEach(t => {
+  t.addEventListener("click", () => setMobileTab(t.dataset.tab));
 });
 
 // Initial render
