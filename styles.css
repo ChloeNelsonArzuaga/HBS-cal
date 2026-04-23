@@ -821,13 +821,17 @@ body {
   body.mobile-cal .panel.catalog  { transform: translateX(-100%); }
   body.mobile-cal .panel.calendar { transform: translateX(0); }
 
-  /* Mobile tab bar */
+  /* Mobile tab bar — fixed so browser chrome can't cover it */
   .mobile-tabs {
     display: flex;
-    flex-shrink: 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: white;
     border-top: 1px solid var(--line);
     z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .mobile-tab {
     flex: 1;
@@ -848,9 +852,14 @@ body {
     border-top-color: var(--crimson);
   }
 
-  /* Lift drawer and toast above the tab bar */
-  .course-detail { bottom: 54px; }
-  .toast { bottom: 72px; }
+  /* Push layout content above the fixed tab bar */
+  .layout {
+    padding-bottom: calc(54px + env(safe-area-inset-bottom));
+  }
+
+  /* Lift drawer and toast above the fixed tab bar */
+  .course-detail { bottom: calc(54px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
 
   /* Calendar: enforce minimum width so it scrolls horizontally */
   .week-grid { min-width: 540px; }
