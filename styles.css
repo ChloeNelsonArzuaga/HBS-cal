@@ -821,45 +821,36 @@ body {
   body.mobile-cal .panel.catalog  { transform: translateX(-100%); }
   body.mobile-cal .panel.calendar { transform: translateX(0); }
 
-  /* Mobile tab bar — fixed so browser chrome can't cover it */
+  /* Mobile tab bar — sits just below the topbar */
   .mobile-tabs {
     display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     background: white;
-    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
     z-index: 40;
-    padding-bottom: env(safe-area-inset-bottom);
   }
   .mobile-tab {
     flex: 1;
-    padding: 11px 8px 13px;
+    padding: 10px 8px;
     text-align: center;
     font-size: 13px;
     font-weight: 600;
     color: var(--ink-2);
     cursor: pointer;
     border: none;
-    border-top: 2px solid transparent;
+    border-bottom: 2px solid transparent;
     background: none;
     font-family: inherit;
     transition: color 0.15s;
   }
   .mobile-tab.active {
     color: var(--crimson);
-    border-top-color: var(--crimson);
+    border-bottom-color: var(--crimson);
   }
 
-  /* Push layout content above the fixed tab bar */
-  .layout {
-    padding-bottom: calc(54px + env(safe-area-inset-bottom));
-  }
-
-  /* Lift drawer and toast above the fixed tab bar */
-  .course-detail { bottom: calc(54px + env(safe-area-inset-bottom)); }
-  .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
+  /* Drawer and toast at normal bottom */
+  .course-detail { bottom: 0; }
+  .toast { bottom: 24px; }
 
   /* Calendar: enforce minimum width so it scrolls horizontally */
   .week-grid { min-width: 540px; }
