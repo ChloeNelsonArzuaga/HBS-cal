@@ -15,6 +15,13 @@
         <div class="sub">MBA Elective Curriculum — Fall 2026 (Q1Q2)</div>
       </div>
     </div>
+    <div class="schedule-controls">
+      <span class="schedule-label">Schedule</span>
+      <select id="scheduleSelect" class="schedule-select"></select>
+      <button class="btn" id="newScheduleBtn">+ New</button>
+      <button class="btn" id="renameScheduleBtn">Rename</button>
+      <button class="btn danger" id="deleteScheduleBtn">Delete</button>
+    </div>
     <div class="stats">
       <div class="stat">
         <div class="stat-label">Enrolled</div>
@@ -32,7 +39,10 @@
     <!-- Left: Course catalog -->
     <aside class="panel catalog">
       <div class="catalog-header">
-        <input type="search" id="searchBox" placeholder="Search courses, instructors, codes…">
+        <div class="catalog-top-row">
+          <input type="search" id="searchBox" placeholder="Search courses, instructors, codes…">
+          <button class="btn add-custom-btn" id="addCustomBtn">+ Custom</button>
+        </div>
         <div class="filter-row">
           <select id="filterTerm">
             <option value="">All terms</option>
@@ -86,7 +96,85 @@
     </section>
   </main>
 
+  <!-- Course detail drawer (fixed, shown from calendar blocks or catalog ⓘ buttons) -->
+  <div id="courseDetail" class="course-detail hidden">
+    <button class="detail-close" id="detailClose">✕</button>
+    <div id="detailBody" class="detail-body"></div>
+  </div>
+
   <div id="toast" class="toast"></div>
+
+  <!-- Custom class modal -->
+  <div id="customModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Custom Class</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <form id="customForm" autocomplete="off">
+        <input type="hidden" id="editingId">
+
+        <div class="form-field">
+          <label for="customTitle">Class name <span class="req">*</span></label>
+          <input type="text" id="customTitle" placeholder="e.g. Python for Finance" required>
+        </div>
+
+        <div class="form-field">
+          <label for="customInstructor">Instructor</label>
+          <input type="text" id="customInstructor" placeholder="e.g. Smith">
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="customStart">Start time <span class="req">*</span></label>
+            <input type="time" id="customStart" required value="08:30">
+          </div>
+          <div class="form-field">
+            <label for="customEnd">End time <span class="req">*</span></label>
+            <input type="time" id="customEnd" required value="09:50">
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Meeting days <span class="req">*</span></label>
+          <div class="day-chips">
+            <label class="day-chip"><input type="checkbox" name="days" value="X"> X days</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="Y"> Y days</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="MON"> Mon</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="TUE"> Tue</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="WED"> Wed</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="THU"> Thu</label>
+            <label class="day-chip"><input type="checkbox" name="days" value="FRI"> Fri</label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="customTerm">Term</label>
+            <select id="customTerm">
+              <option value="Q1Q2">Q1Q2 (full term)</option>
+              <option value="Q1">Q1 only</option>
+              <option value="Q2">Q2 only</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="customCredits">Credits</label>
+            <input type="number" id="customCredits" value="3" min="0" max="6" step="0.5">
+          </div>
+          <div class="form-field">
+            <label for="customColor">Color</label>
+            <input type="color" id="customColor" value="#7c3aed">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn" id="modalCancel">Cancel</button>
+          <button type="button" class="btn danger hidden" id="deleteCustomBtn">Delete</button>
+          <button type="submit" class="btn primary">Save Class</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
