@@ -1,20 +1,39 @@
 // HBS EC Schedule Planner — app logic
 
+// ---------- Active term ----------
+// Each term has its own catalog and its own saved schedules.
+const TERM_KEY = "hbs_term_v1";
+const TERM = TERMS[localStorage.getItem(TERM_KEY)] || TERMS.spring2027;
+const COURSES      = TERM.courses;
+const DESCRIPTIONS = TERM.descriptions;
+
+function switchTerm(id) {
+  if (id === TERM.id) return;
+  persist();
+  localStorage.setItem(TERM_KEY, id);
+  location.reload();
+}
+
+function isoToDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 // ---------- Persistence: multi-schedule ----------
-const SCHEDULES_KEY = "hbs_schedules_v1";
-const ACTIVE_KEY    = "hbs_active_v1";
+const SCHEDULES_KEY = TERM.schedulesKey;
+const ACTIVE_KEY    = TERM.activeKey;
 
 function loadSchedules() {
   const raw = localStorage.getItem(SCHEDULES_KEY);
   if (raw) return JSON.parse(raw);
-  // First run — migrate any existing single-schedule data
-  const legacy = {
+  // First run — migrate any existing single-schedule data (Fall 2026 only)
+  const legacy = TERM.id === "fall2026";
+  return [{
     id: `sched-${Date.now()}`,
     name: "Schedule 1",
-    enrolled: JSON.parse(localStorage.getItem("hbs_enrolled_v1") || "[]"),
-    customCourses: JSON.parse(localStorage.getItem("hbs_custom_v1") || "[]"),
-  };
-  return [legacy];
+    enrolled: legacy ? JSON.parse(localStorage.getItem("hbs_enrolled_v1") || "[]") : [],
+    customCourses: legacy ? JSON.parse(localStorage.getItem("hbs_custom_v1") || "[]") : [],
+  }];
 }
 
 let schedules = loadSchedules();
@@ -210,6 +229,7 @@ function hasConflict(courseId) {
 // ---------- Course display helpers ----------
 function scheduleKind(course) {
   if (course.isCustom) return "Custom";
+  if (course.isFAS) return "FAS";
   const types = course.meetings.map(m => m.type);
   if (types.includes("X")) return "X";
   if (types.includes("Y")) return "Y";
@@ -220,10 +240,11 @@ function scheduleKind(course) {
 function scheduleBadge(course) {
   const kind = scheduleKind(course);
   if (kind === "Custom") return { cls: "badge-custom", label: "MY" };
-  return kind === "X"     ? { cls: "badge-X", label: "X" }
-       : kind === "Y"     ? { cls: "badge-Y", label: "Y" }
-       : kind === "Joint" ? { cls: "badge-J", label: "JD" }
-       :                    { cls: "badge-W", label: "WK" };
+  return kind === "X"     ? { cls: "badge-X",   label: "X"   }
+       : kind === "Y"     ? { cls: "badge-Y",   label: "Y"   }
+       : kind === "Joint" ? { cls: "badge-J",   label: "JD"  }
+       : kind === "FAS"   ? { cls: "badge-F",   label: "FAS" }
+       :                    { cls: "badge-W",   label: "WK"  };
 }
 
 function meetingSummary(course) {
@@ -239,11 +260,10 @@ function escapeHtml(s) {
 
 // ---------- Rendering: Stats ----------
 function renderStats() {
-  const count = enrolled.size;
-  let credits = 0;
+  let count = 0, credits = 0;
   for (const id of enrolled) {
     const c = allCourses().find(x => x.id === id);
-    if (c) credits += c.credits;
+    if (c) { count++; credits += c.credits; }
   }
   document.getElementById("enrolledCount").textContent = count;
   document.getElementById("creditCount").textContent = credits;
@@ -257,6 +277,8 @@ const filterSchedule = document.getElementById("filterSchedule");
 const filterCategory = document.getElementById("filterCategory");
 const filterEnrolled = document.getElementById("filterEnrolled");
 const filterConflicts = document.getElementById("filterConflicts");
+// FAS course level filter: "" (all), "100", "200", "300"
+let filterLevel = "";
 
 // Populate category dropdown from catalog courses only
 {
@@ -279,16 +301,18 @@ function renderCatalog() {
   const filtered = allCourses().filter(c => {
     if (ft && c.term !== ft) return false;
     if (fc && c.category !== fc) return false;
+    if (filterLevel && c.isFAS && c.level !== filterLevel) return false;
     if (fs) {
       const k = scheduleKind(c);
       if (fs === "Weekly" && k !== "Weekly") return false;
       if (fs === "Joint"  && k !== "Joint")  return false;
       if (fs === "X"      && k !== "X")      return false;
       if (fs === "Y"      && k !== "Y")      return false;
+      if (fs === "FAS"    && k !== "FAS")    return false;
     }
     if (fe && !enrolled.has(c.id)) return false;
     if (q) {
-      const hay = `${c.title} ${c.instructor} ${c.code} ${c.category}`.toLowerCase();
+      const hay = `${c.title} ${c.instructor} ${c.code} ${c.category} ${c.dept || ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     if (fconf && !enrolled.has(c.id) && hasConflict(c.id)) return false;
@@ -302,14 +326,18 @@ function renderCatalog() {
   // Group catalog courses by time slot
   const groups = {};
   for (const c of catalogFiltered) {
+    // Courses without a listed meeting time (schedule pending / arranged) group under "Time TBA"
     const primary = c.meetings[0];
-    const key = `${scheduleKind(c)} — ${primary.type} ${fmtTime(primary.start)}`;
+    const key = primary
+      ? `${scheduleKind(c)} — ${primary.type} ${fmtTime(primary.start)}`
+      : `${scheduleKind(c)} — Time TBA`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(c);
   }
 
   const orderedKeys = Object.keys(groups).sort((a,b) => {
-    const rank = s => s.startsWith("X") ? 0 : s.startsWith("Y") ? 1 : s.startsWith("Weekly") ? 2 : 3;
+    const rank = s => (s.startsWith("X") ? 0 : s.startsWith("Y") ? 1 : s.startsWith("Weekly") ? 2 : s.startsWith("FAS") ? 4 : 3)
+      + (s.endsWith("Time TBA") ? 0.5 : 0);
     const ra = rank(a), rb = rank(b);
     return ra !== rb ? ra - rb : a.localeCompare(b);
   });
@@ -353,7 +381,7 @@ function renderCourseItem(c) {
   if (!enrolled.has(c.id) && hasConflict(c.id)) item.classList.add("conflict");
 
   const badge   = scheduleBadge(c);
-  const termText = c.term === "Q1Q2" ? "Q1Q2" : c.term;
+  const termText = c.term;
   const section  = c.section ? `-${c.section}` : "";
   const colorDot = c.isCustom
     ? `<span class="custom-color-dot" style="background:${c.color}"></span>`
@@ -411,8 +439,11 @@ function renderCourseItem(c) {
 // ---------- Calendar: Week view ----------
 const calendarEl  = document.getElementById("calendar");
 const weekLabel   = document.getElementById("weekLabel");
-let currentWeekStart = startOfWeekMonday(new Date(2026, 8, 1));
+let currentWeekStart = startOfWeekMonday(isoToDate(TERM.start));
 let view = "week";
+// Zoom levels in px/hour; index 3 is the default (matches original 80px/hr)
+const ZOOM_LEVELS = [30, 45, 60, 80, 100];
+let zoomIdx = 3;
 
 function renderCalendar() {
   if (view === "week") renderWeekView();
@@ -428,9 +459,12 @@ function renderWeekView() {
     start.getMonth() !== endLabel.getMonth() ? MONTHS[endLabel.getMonth()] + " " : ""
   }${endLabel.getDate()}, ${start.getFullYear()}`;
 
-  const startMin = 8*60, endMin = 19*60;
-  const pxPerMin = 40/30;
+  const startMin = 8*60, endMin = 21*60;
+  const pxPerMin = ZOOM_LEVELS[zoomIdx] / 60;
   const totalHeight = (endMin - startMin) * pxPerMin;
+
+  // Show time labels every 60 min when zoomed out, every 30 min when zoomed in
+  const labelInterval = ZOOM_LEVELS[zoomIdx] < 60 ? 60 : 30;
 
   let html = `<div class="week-grid" style="grid-template-rows: auto ${totalHeight}px;">`;
   html += `<div class="day-header" style="background:white;"></div>`;
@@ -454,9 +488,10 @@ function renderWeekView() {
 
   // Time column
   html += `<div class="time-col">`;
-  for (let m = startMin; m < endMin; m += 30) {
-    const h = Math.floor(m/60), mm = m%60;
-    html += `<div class="time-label">${mm === 0 ? `${h%12===0?12:h%12} ${h>=12?"PM":"AM"}` : ""}</div>`;
+  for (let m = startMin; m < endMin; m += labelInterval) {
+    const h = Math.floor(m/60), mm = m % 60;
+    const txt = mm === 0 ? `${h%12===0?12:h%12} ${h>=12?"PM":"AM"}` : "";
+    html += `<div class="time-label" style="height:${labelInterval * pxPerMin}px">${txt}</div>`;
   }
   html += `</div>`;
 
@@ -521,7 +556,7 @@ function renderWeekView() {
         blockStyle += `background:${mt.course.color};`;
       } else {
         const kind = scheduleKind(mt.course);
-        blockClass += ` ${kind === "X" ? "x" : kind === "Y" ? "y" : kind === "Joint" ? "j" : "w"}`;
+        blockClass += ` ${kind === "X" ? "x" : kind === "Y" ? "y" : kind === "Joint" ? "j" : kind === "FAS" ? "fas" : "w"}`;
       }
       if (isConflict) blockClass += " conflict";
 
@@ -542,7 +577,7 @@ function renderWeekView() {
 
 // ---------- Calendar: Full-term heatmap ----------
 function renderTermView() {
-  weekLabel.textContent = "Fall 2026 — Full Term";
+  weekLabel.textContent = `${TERM.label} — Full Term`;
   let html = `<div class="term-grid">`;
   for (const d of ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])
     html += `<div class="term-dow">${d}</div>`;
@@ -552,13 +587,13 @@ function renderTermView() {
     enrolledByDate.set(m.date, (enrolledByDate.get(m.date) || 0) + 1);
   }
 
-  let cur = new Date(2026, 7, 31);
-  const end = new Date(2026, 11, 11);
+  let cur = startOfWeekMonday(isoToDate(TERM.start));
+  const end = isoToDate(TERM.end);
   let currentMonth = -1;
   while (cur <= end) {
     if (cur.getMonth() !== currentMonth) {
       currentMonth = cur.getMonth();
-      html += `<div class="term-month-label">${MONTHS[currentMonth]} 2026</div>`;
+      html += `<div class="term-month-label">${MONTHS[currentMonth]} ${cur.getFullYear()}</div>`;
     }
     for (let i = 0; i < 7; i++) {
       const iso = toISO(cur);
@@ -633,7 +668,7 @@ function openModal(existing) {
   document.getElementById("customInstructor").value = existing ? (existing.instructor || "") : "";
   document.getElementById("customStart").value      = existing ? existing.meetings[0].start : "08:30";
   document.getElementById("customEnd").value        = existing ? existing.meetings[0].end   : "09:50";
-  document.getElementById("customTerm").value       = existing ? existing.term : "Q1Q2";
+  document.getElementById("customTerm").value       = existing ? existing.term : TERM.full;
   document.getElementById("customCredits").value    = existing ? existing.credits : 3;
   document.getElementById("customColor").value      = existing ? existing.color : "#7c3aed";
 
@@ -736,7 +771,7 @@ function openDetail(courseId) {
   if (!c) return;
 
   const kind = scheduleKind(c);
-  const pillClass = kind === "X" ? "x" : kind === "Y" ? "y" : kind === "Joint" ? "j" : "w";
+  const pillClass = kind === "X" ? "x" : kind === "Y" ? "y" : kind === "Joint" ? "j" : kind === "FAS" ? "fas" : "w";
   const pillLabel = kind === "Custom" ? "" : kind;
   const section = c.section ? `-${c.section}` : "";
   const isEnrolled = enrolled.has(c.id);
@@ -754,7 +789,8 @@ function openDetail(courseId) {
       ${c.instructor ? `<span>${escapeHtml(c.instructor)}</span>` : ""}
       <span>${c.category}</span>
       <span>${c.credits} credit${c.credits !== 1 ? "s" : ""}</span>
-      <span>${c.term === "Q1Q2" ? "Full term (Q1Q2)" : c.term + " only"}</span>
+      ${c.level ? `<span>${c.level}-level</span>` : ""}
+      <span>${c.term === TERM.full ? `Full term (${TERM.full})` : c.term + " only"}</span>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
       ${kind !== "Custom" ? `<span class="detail-pill ${pillClass}">${pillLabel}</span>` : ""}
@@ -768,7 +804,7 @@ function openDetail(courseId) {
       </button>
       ${conflict ? `<span class="detail-conflict-warn">⚠ Time conflict with an enrolled class</span>` : ""}
       ${c.isCustom ? `<button class="btn" id="detailEditBtn" style="margin-left:auto;">Edit class</button>` : ""}
-      ${!c.isCustom ? `<a class="btn detail-catalog-link" href="https://www.hbs.edu/coursecatalog/${c.code}.html" target="_blank" style="margin-left:auto;text-decoration:none;">Full catalog page ↗</a>` : ""}
+      ${!c.isCustom ? `<a class="btn detail-catalog-link" href="${c.url || `https://www.hbs.edu/coursecatalog/${c.code}.html`}" target="_blank" style="margin-left:auto;text-decoration:none;">Full catalog page ↗</a>` : ""}
     </div>
   `;
 
@@ -822,6 +858,14 @@ function updateAll() {
 // ---------- Event listeners ----------
 searchBox.addEventListener("input", renderCatalog);
 filterTerm.addEventListener("change", renderCatalog);
+document.querySelectorAll("#levelToggle .toggle").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#levelToggle .toggle").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    filterLevel = b.dataset.level;
+    renderCatalog();
+  });
+});
 filterSchedule.addEventListener("change", renderCatalog);
 filterCategory.addEventListener("change", renderCatalog);
 filterEnrolled.addEventListener("change", renderCatalog);
@@ -837,8 +881,8 @@ document.getElementById("nextWeek").addEventListener("click", () => {
 });
 document.getElementById("todayBtn").addEventListener("click", () => {
   const iso = toISO(new Date());
-  currentWeekStart = (iso < "2026-08-31" || iso > "2026-12-11")
-    ? startOfWeekMonday(new Date(2026, 8, 1))
+  currentWeekStart = (iso < TERM.start || iso > TERM.end)
+    ? startOfWeekMonday(isoToDate(TERM.start))
     : startOfWeekMonday(new Date());
   renderCalendar();
 });
@@ -862,6 +906,19 @@ document.getElementById("clearBtn").addEventListener("click", () => {
 });
 
 document.getElementById("exportIcsBtn").addEventListener("click", exportICS);
+
+// ---------- Zoom ----------
+function updateZoomButtons() {
+  document.getElementById("zoomOut").disabled = zoomIdx === 0;
+  document.getElementById("zoomIn").disabled  = zoomIdx === ZOOM_LEVELS.length - 1;
+}
+document.getElementById("zoomOut").addEventListener("click", () => {
+  if (zoomIdx > 0) { zoomIdx--; renderCalendar(); updateZoomButtons(); }
+});
+document.getElementById("zoomIn").addEventListener("click", () => {
+  if (zoomIdx < ZOOM_LEVELS.length - 1) { zoomIdx++; renderCalendar(); updateZoomButtons(); }
+});
+updateZoomButtons();
 
 // ---------- Schedule control listeners ----------
 document.getElementById("scheduleSelect").addEventListener("change", e => {
@@ -895,6 +952,26 @@ document.querySelectorAll(".mobile-tab").forEach(t => {
   t.addEventListener("click", () => setMobileTab(t.dataset.tab));
 });
 
+// ---------- Term toggle + term-specific labels ----------
+function initTermUI() {
+  const [qa, qb] = TERM.quarters;
+  document.title = `HBS ${TERM.label} Schedule Planner`;
+  document.getElementById("termSub").textContent = `MBA Elective Curriculum — ${TERM.label} (${TERM.full})`;
+  document.getElementById("filterTerm").insertAdjacentHTML("beforeend",
+    `<option value="${TERM.full}">Full term (${TERM.full})</option>
+     <option value="${qa}">${qa} only</option>
+     <option value="${qb}">${qb} only</option>`);
+  document.getElementById("customTerm").innerHTML =
+    `<option value="${TERM.full}">${TERM.full} (full term)</option>
+     <option value="${qa}">${qa} only</option>
+     <option value="${qb}">${qb} only</option>`;
+  document.querySelectorAll("#termToggle .toggle").forEach(b => {
+    b.classList.toggle("active", b.dataset.term === TERM.id);
+    b.addEventListener("click", () => switchTerm(b.dataset.term));
+  });
+}
+
 // Initial render
+initTermUI();
 renderScheduleSelector();
 updateAll();

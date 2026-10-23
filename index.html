@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HBS Fall 2026 Schedule Planner</title>
+<title>HBS Schedule Planner</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,10 +12,14 @@
       <div class="logo">HBS</div>
       <div>
         <h1>EC Schedule Planner</h1>
-        <div class="sub">MBA Elective Curriculum — Fall 2026 (Q1Q2)</div>
+        <div class="sub" id="termSub">MBA Elective Curriculum</div>
       </div>
     </div>
     <div class="schedule-controls">
+      <div class="term-toggle" id="termToggle" title="Switch semester">
+        <button class="btn toggle" data-term="fall2026">Fall 2026</button>
+        <button class="btn toggle" data-term="spring2027">Spring 2027</button>
+      </div>
       <span class="schedule-label">Schedule</span>
       <select id="scheduleSelect" class="schedule-select"></select>
       <button class="btn" id="newScheduleBtn">+ New</button>
@@ -52,9 +56,6 @@
         <div class="filter-row">
           <select id="filterTerm">
             <option value="">All terms</option>
-            <option value="Q1Q2">Full term (Q1Q2)</option>
-            <option value="Q1">Q1 only</option>
-            <option value="Q2">Q2 only</option>
           </select>
           <select id="filterSchedule">
             <option value="">All schedules</option>
@@ -62,6 +63,7 @@
             <option value="Y">Y schedule</option>
             <option value="Weekly">Weekly (Tue/Wed/Thu)</option>
             <option value="Joint">Joint-degree</option>
+            <option value="FAS">FAS / Cross-reg</option>
           </select>
           <select id="filterCategory">
             <option value="">All categories</option>
@@ -70,6 +72,13 @@
         <div class="filter-row">
           <label class="chk"><input type="checkbox" id="filterEnrolled"> Enrolled only</label>
           <label class="chk"><input type="checkbox" id="filterConflicts"> Hide conflicts</label>
+          <div class="level-toggle" id="levelToggle" title="FAS course level">
+            <span class="level-label">FAS level</span>
+            <button class="btn toggle active" data-level="">All</button>
+            <button class="btn toggle" data-level="100">100</button>
+            <button class="btn toggle" data-level="200">200</button>
+            <button class="btn toggle" data-level="300">300</button>
+          </div>
         </div>
       </div>
       <div id="courseList" class="course-list"></div>
@@ -88,6 +97,10 @@
           <button class="btn toggle active" data-view="week">Week</button>
           <button class="btn toggle" data-view="term">Full term</button>
         </div>
+        <div class="zoom-group">
+          <button class="btn zoom-btn" id="zoomOut" title="Zoom out">−</button>
+          <button class="btn zoom-btn" id="zoomIn" title="Zoom in">+</button>
+        </div>
       </div>
       <div id="calendar" class="calendar-body"></div>
       <div class="cal-footer">
@@ -95,6 +108,7 @@
           <span class="legend-dot x"></span> X day
           <span class="legend-dot y"></span> Y day
           <span class="legend-dot weekly"></span> Weekly
+          <span class="legend-dot fas"></span> FAS
           <span class="legend-dot holiday"></span> Holiday / Exams
         </div>
         <button class="btn" id="exportIcsBtn">Export .ics</button>
@@ -158,9 +172,6 @@
           <div class="form-field">
             <label for="customTerm">Term</label>
             <select id="customTerm">
-              <option value="Q1Q2">Q1Q2 (full term)</option>
-              <option value="Q1">Q1 only</option>
-              <option value="Q2">Q2 only</option>
             </select>
           </div>
           <div class="form-field">
@@ -183,6 +194,8 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="data-fall2026.js"></script>
+  <script src="data-spring2027.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

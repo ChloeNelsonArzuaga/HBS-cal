@@ -127,6 +127,11 @@ body {
 }
 #searchBox:focus { border-color: var(--crimson); background: white; }
 .filter-row { display: flex; gap: 5px; align-items: center; }
+.term-toggle { display: flex; margin-right: 10px; }
+.level-toggle { display: flex; align-items: center; margin-left: auto; }
+.level-toggle .level-label { font-size: 11px; color: var(--ink-2); margin-right: 6px; }
+.level-toggle .btn.toggle { padding: 3px 8px; font-size: 11px; }
+.level-toggle .level-label + .btn.toggle { border-radius: 5px 0 0 5px; }
 .filter-row select {
   flex: 1;
   min-width: 0;
@@ -204,6 +209,7 @@ body {
 .badge-Y      { background: var(--y); }
 .badge-W      { background: var(--weekly); }
 .badge-J      { background: #6b5bb3; }
+.badge-F      { background: #a51c30; }
 .badge-custom { background: #7c3aed; }
 
 .custom-color-dot {
@@ -273,6 +279,9 @@ body {
   gap: 12px;
 }
 .nav-group { display: flex; gap: 4px; }
+.zoom-group { display: flex; gap: 2px; }
+.zoom-btn   { padding: 6px 10px; font-size: 14px; line-height: 1; min-width: 30px; }
+.zoom-btn:disabled { opacity: 0.35; cursor: default; }
 .btn {
   padding: 6px 12px;
   font-size: 12.5px;
@@ -381,6 +390,7 @@ body {
 .detail-pill.y       { background: var(--y); }
 .detail-pill.w       { background: var(--weekly); }
 .detail-pill.j       { background: #6b5bb3; }
+.detail-pill.fas     { background: #a51c30; }
 .detail-description {
   font-size: 13px;
   color: var(--ink);
@@ -469,12 +479,12 @@ body {
   position: sticky; left: 0; z-index: 4;
 }
 .time-label {
-  height: 40px;
   font-size: 10px;
   color: var(--ink-2);
   padding: 2px 6px;
   text-align: right;
   border-bottom: 1px dashed var(--line);
+  box-sizing: border-box;
 }
 .day-col {
   border-right: 1px solid var(--line);
@@ -506,10 +516,11 @@ body {
   transition: transform 0.1s;
 }
 .class-block:hover { transform: scale(1.02); z-index: 3; }
-.class-block.x { background: var(--x); }
-.class-block.y { background: var(--y); }
-.class-block.w { background: var(--weekly); }
-.class-block.j { background: #6b5bb3; }
+.class-block.x   { background: var(--x); }
+.class-block.y   { background: var(--y); }
+.class-block.w   { background: var(--weekly); }
+.class-block.j   { background: #6b5bb3; }
+.class-block.fas { background: #a51c30; }
 .class-block.conflict {
   outline: 2px solid var(--conflict);
   outline-offset: -2px;
@@ -601,6 +612,7 @@ body {
 .legend-dot.x { background: var(--x); }
 .legend-dot.y { background: var(--y); }
 .legend-dot.weekly { background: var(--weekly); }
+.legend-dot.fas { background: #a51c30; }
 .legend-dot.holiday { background: var(--holiday); }
 
 .empty-state {
